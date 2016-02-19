@@ -17,24 +17,11 @@ import           Utils.ImageUtils
 import           Utils.TesseractUtils
 import           Views.Index
 
-jsonData :: (T.Text, Int, T.Text)
-jsonData = ("Joe", 23, "Software Engineer")
-
 main :: IO ()
 main = scotty 3000 $ do
     middleware $ staticPolicy (noDots >-> addBase "assets")
     middleware logStdoutDev
     get "/" $ do
-      html $ mconcat ["<h1>Scotty, beam me up!</h1>"]
-    get "/json" $ do
-      json Main.jsonData
-    get "/json/:name" $ do
-      name <- param "name"
-      json (name :: T.Text)
-    get "/text/:name" $ do
-      name <- param "name"
-      text name
-    get "/html" $ do
       html $ renderHtml Views.Index.index
     post "/upload" $ do
       processUploads

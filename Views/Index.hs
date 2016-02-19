@@ -10,6 +10,6 @@ index = do
   html $ do
     renderHead "Index"
     body $ do
-      h1 "Hey!"
-      h2 "What's up?"
+      h1 "Placeholder Text"
+      h2 "Nothing here yet.."
       renderJavascript
