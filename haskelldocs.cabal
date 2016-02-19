@@ -33,3 +33,4 @@ executable haskelldocs
                      , time
                      , filepath
                      , process
+                     , postgresql-simple
