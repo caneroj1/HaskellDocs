@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+
 import           Web.Scotty
 
 import           Control.Monad
@@ -12,6 +13,8 @@ import           Network.Wai.Parse                    (fileContent, fileName)
 import           System.FilePath                      ((</>))
 import           Text.Blaze.Html.Renderer.Text
 import           Utils.DateUtils
+import           Utils.ImageUtils
+import           Utils.TesseractUtils
 import           Views.Index
 
 jsonData :: (T.Text, Int, T.Text)
@@ -48,6 +51,7 @@ processUploads = do
   fAndNPairs <- liftAndCatchIO $ zipFilesWithTimes fs'
   liftAndCatchIO . sequence_ $ [ BS.writeFile (toPath path) (fileContent file)
     | ( (_, file), path) <- fAndNPairs ]
+  liftAndCatchIO $ mapM (execOCR . toPath . snd) fAndNPairs
   json $ map snd fAndNPairs
   where toPath xs = "assets" </> xs
 
@@ -59,3 +63,8 @@ zipFilesWithTimes fs = do
   where timeString = liftM2 getTimeString currentTimeZone currentUTC
         toString f = C.unpack $ fileName f
         toPath xs  = (\x -> return $ x ++ "_" ++ xs) =<< timeString
+
+execOCR :: String -> IO ()
+execOCR filename = do
+  convertForOCR filename
+  runTesseract $ rename filename

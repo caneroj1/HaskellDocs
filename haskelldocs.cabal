@@ -32,3 +32,4 @@ executable haskelldocs
                      , wai-extra
                      , time
                      , filepath
+                     , process
