@@ -1,11 +1,13 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module DB.Database
 (
-  connection,
+  connectToDB,
   close,
-  connect
 )
 where
 
+import           Control.Monad
 import           Data.Word
 import           Database.PostgreSQL.Simple
 import           System.Environment
@@ -24,7 +26,7 @@ dbUser = getEnv "DBUSER"
 
 dbPort :: IO Word16
 dbPort = do
-  port <- getEnv "dbPort"
+  port <- getEnv "DBPORT"
   return $ fromIntegral (read port :: Int)
 
 connection :: IO ConnectInfo
@@ -41,3 +43,6 @@ connection = do
     connectPassword = pass,
     connectDatabase = name
   }
+
+connectToDB :: IO Connection
+connectToDB = connection >>= connect
