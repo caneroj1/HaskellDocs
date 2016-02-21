@@ -32,6 +32,8 @@ data Document =
     , docID     :: Integer
     , createdAt :: UTCTime
     , indexed   :: Bool
+    -- , indexedAt :: UTCTime
+    -- , searchable :: ??? tsvector in postgres
   } |
   NewDoc {
       filename :: Text.Text

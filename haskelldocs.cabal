@@ -30,3 +30,16 @@ executable haskelldocs
                      , process
                      , postgresql-simple
                      , aeson
+
+
+executable indexer
+ main-is:             Index.hs
+ -- other-modules:
+ build-depends:       base >=4.6
+                    , text
+                    , bytestring
+                    , time
+                    , filepath
+                    , process
+                    , postgresql-simple
+                    , aeson
