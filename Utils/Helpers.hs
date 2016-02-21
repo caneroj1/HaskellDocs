@@ -7,7 +7,10 @@ indexes :: [a] -> [(Int, a)]
 indexes xs = zip [0..length xs] xs
 
 pairsToStrings :: (Show a, Show b) => [(a, b)] -> [String]
-pairsToStrings = map (\(x, y) -> show x ++ show y)
+pairsToStrings = map (\(x, y) -> removeQuotes $ show x ++ show y)
+
+removeQuotes :: String -> String
+removeQuotes = filter (/= '"')
 
 textToInteger :: Text.Text -> Integer
 textToInteger text = go $ decimal text
