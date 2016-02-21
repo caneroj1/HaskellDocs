@@ -21,12 +21,7 @@ executable haskelldocs
                      , text
                      , bytestring
                      , blaze-html
-                     , persistent
-                     , persistent-template
-                     , persistent-sqlite
-                     , persistent-postgresql
                      , monad-logger
-                     , heroku
                      , transformers
                      , wai-middleware-static
                      , wai-extra
@@ -34,3 +29,4 @@ executable haskelldocs
                      , filepath
                      , process
                      , postgresql-simple
+                     , aeson

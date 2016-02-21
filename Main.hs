@@ -34,6 +34,13 @@ main = scotty 3000 $ do
     post "/upload" $ do
       dbConn <- liftAndCatchIO connectToDB
       processUploads dbConn
+    get "/docs" $ do
+      docs <- liftAndCatchIO $ getAllDocuments =<< connectToDB
+      json docs
+    get "/docs/:id" $ do
+      dbConn <- liftAndCatchIO connectToDB
+      documentID <-  textToInteger <$> param "id"
+      json =<< liftAndCatchIO (getDocumentByID dbConn documentID)
 
 collectTitles :: Int -> [Param] -> [T.Text]
 collectTitles n ps
@@ -46,7 +53,7 @@ collectTitles n ps
 
 zipFilesWithNames :: [File] -> IO [(UploadedFile, T.Text)]
 zipFilesWithNames fs = do
-  let fnames = map T.pack . pairsToStrings . indexed $ map (fileName . snd) fs
+  let fnames = map T.pack . pairsToStrings . indexes $ map (fileName . snd) fs
   filenames' <- mapM toPath fnames
   let files  = map snd fs
   return $ zip files filenames'
@@ -69,11 +76,5 @@ processUploads dbConn = do
   let filenames = map snd fAndNPairs
   let docs      = zipWith (curry toNewDoc) filenames titles
   liftAndCatchIO $ createDocuments dbConn docs
-  -- liftAndCatchIO $ mapM (execOCR . toPath . snd) fAndNPairs
   json $ map snd fAndNPairs
   where toPath xs = "assets" </> T.unpack xs
-
-execOCR :: String -> IO ()
-execOCR filename = do
-  convertForOCR filename
-  runTesseract $ rename filename
