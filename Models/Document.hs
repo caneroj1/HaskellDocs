@@ -36,8 +36,7 @@ data Document =
     -- , searchable :: ??? tsvector in postgres
   } |
   NewDoc {
-      filename :: Text.Text
-    , title    :: Text.Text
+    title :: Text.Text
   }
   deriving (Show, Generic)
 
@@ -52,13 +51,12 @@ instance FromRow Document where
 instance ToRow Document where
   toRow (
     NewDoc {
-      filename = docName
-    , title = docTitle
-  }) = [toField docName, toField docTitle]
+    title = docTitle
+  }) = [toField docTitle]
 
-toNewDoc :: (Text.Text, Text.Text) -> Document
-toNewDoc (filename, title) =
-  NewDoc { filename = filename, title = title }
+toNewDoc :: Text.Text -> Document
+toNewDoc (title) =
+  NewDoc { title = title }
 
 createSQL :: Query
 createSQL = "insert into Documents (filename, title) values (?, ?) \

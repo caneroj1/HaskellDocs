@@ -6,7 +6,6 @@ import qualified Data.ByteString.Lazy                 as BS
 import qualified Data.Text.Lazy                       as T
 import           Database.PostgreSQL.Simple           (Connection)
 import           DB.Database
-import           Models.Document
 import           Network.Wai.Middleware.RequestLogger
 import           Network.Wai.Middleware.Static
 import           Network.Wai.Parse                    (FileInfo, fileContent,

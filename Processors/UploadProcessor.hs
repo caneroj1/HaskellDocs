@@ -1,29 +1,27 @@
+{-# LANGUAGE DoAndIfThenElse   #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Processors.UploadProcessor where
 
+import           Control.Applicative
 import           Control.Monad
 import qualified Data.ByteString.Lazy       as BS
+import           Data.Monoid
 import qualified Data.Text.Lazy             as T
 import           Database.PostgreSQL.Simple (Connection)
 import           DB.Database
 import           Models.Document
+import           Models.Document
+import           Network.HTTP.Types
 import           Network.Wai.Parse          (FileInfo, fileContent, fileName)
+import           Processors.Utils
 import           Utils.DateUtils
 import           Utils.Helpers
 import           Web.Scotty                 (ActionM, File, Param, files, json,
-                                             liftAndCatchIO, params)
+                                             liftAndCatchIO, param, params,
+                                             raise, status)
 
 type UploadedFile = FileInfo BS.ByteString
-
-collectTitles :: Int -> [Param] -> [T.Text]
-collectTitles n ps
-  | n > psLen  = titles ++ replicate diff "Untitled"
-  | n == psLen = titles
-  | n < psLen  = take n titles
-  where psLen  = length ps
-        titles = map snd ps
-        diff   = n - psLen
 
 zipFilesWithNames :: [File] -> IO [(UploadedFile, T.Text)]
 zipFilesWithNames fs = do
@@ -39,14 +37,21 @@ writeFiles :: [(UploadedFile, T.Text)] -> IO ()
 writeFiles fs = forM_ fs (\(file, name) ->
   BS.writeFile (tGlobalPath name) (fileContent file))
 
-processUploads :: Connection -> ActionM ()
-processUploads dbConn = do
-  fs'        <- files
-  ps         <- params
-  fAndNPairs <- liftAndCatchIO $ zipFilesWithNames fs'
+doUpload :: Connection -> [File] -> T.Text -> ActionM ()
+doUpload dbConn fs title = do
+  fAndNPairs <- liftAndCatchIO $ zipFilesWithNames fs
   liftAndCatchIO $ writeFiles fAndNPairs
-  let titles    = collectTitles (length fs') ps
   let filenames = map snd fAndNPairs
+  let document  = toNewDoc title
   let docs      = zipWith (curry toNewDoc) filenames titles
   liftAndCatchIO $ createDocuments dbConn docs
   json $ map snd fAndNPairs
+
+processUploads :: Connection -> ActionM ()
+processUploads dbConn = do
+  title    <- T.pack <$> param "title"
+  fs       <- files
+  (b1, m1) <- verify True (textExists title) [] "Title not supplied."
+  (b2, m2) <- verify b1 (exists fs) m1 "No images were uploaded."
+  if not b2 then json (m2 :: Errors)
+  else doUpload dbConn fs title
