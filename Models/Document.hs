@@ -83,7 +83,8 @@ getDocumentByID connection documentID = do
   return document
 
 nonIndexedSQL :: Query
-nonIndexedSQL = "select top 15 filename title docID createdAt indexed from \
-                \Documents where indexed = false order by createdAt asc"
+nonIndexedSQL = "select filename, title, docID, createdAt, indexed from \
+                \Documents where indexed = false order by createdAt asc \
+                \limit 15"
 getSomeNonIndexed :: Connection -> IO [Document]
 getSomeNonIndexed connection = query_ connection nonIndexedSQL

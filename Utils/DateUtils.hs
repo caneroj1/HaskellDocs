@@ -7,6 +7,9 @@ import           Data.Time.LocalTime
 currentUTC = getCurrentTime
 currentTimeZone = getCurrentTimeZone
 
+timeDiff :: UTCTime -> UTCTime -> String
+timeDiff f l = show $ diffUTCTime l f
+
 getTimeString :: TimeZone -> UTCTime -> String
 getTimeString tzone utc = output
   where localTime          = utcToLocalTime tzone utc
