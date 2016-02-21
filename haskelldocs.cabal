@@ -30,6 +30,7 @@ executable haskelldocs
                      , process
                      , postgresql-simple
                      , aeson
+                     , directory
 
 
 executable indexer
@@ -43,3 +44,4 @@ executable indexer
                     , process
                     , postgresql-simple
                     , aeson
+                    , directory

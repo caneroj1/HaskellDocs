@@ -1,7 +1,8 @@
 module Utils.Helpers where
 
-import qualified Data.Text      as Text
-import           Data.Text.Read
+import qualified Data.Text.Lazy      as Text
+import           Data.Text.Lazy.Read
+import           System.FilePath     ((</>))
 
 indexes :: [a] -> [(Int, a)]
 indexes xs = zip [0..length xs] xs
@@ -16,3 +17,6 @@ textToInteger :: Text.Text -> Integer
 textToInteger text = go $ decimal text
   where go (Left  _)        = 0
         go (Right (num, _)) = num
+
+tGlobalPath :: Text.Text -> String
+tGlobalPath t = "assets" </> Text.unpack t

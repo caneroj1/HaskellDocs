@@ -15,7 +15,6 @@ import           Network.Wai.Middleware.RequestLogger
 import           Network.Wai.Middleware.Static
 import           Network.Wai.Parse                    (FileInfo, fileContent,
                                                        fileName)
-import           System.FilePath                      ((</>))
 import           Text.Blaze.Html.Renderer.Text
 import           Utils.DateUtils
 import           Utils.Helpers
@@ -63,8 +62,7 @@ zipFilesWithNames fs = do
 
 writeFiles :: [(UploadedFile, T.Text)] -> IO ()
 writeFiles fs = forM_ fs (\(file, name) ->
-  BS.writeFile (toPath name) (fileContent file))
-  where toPath s = "assets" </> T.unpack s
+  BS.writeFile (tGlobalPath name) (fileContent file))
 
 processUploads :: Connection -> ActionM ()
 processUploads dbConn = do
@@ -77,4 +75,3 @@ processUploads dbConn = do
   let docs      = zipWith (curry toNewDoc) filenames titles
   liftAndCatchIO $ createDocuments dbConn docs
   json $ map snd fAndNPairs
-  where toPath xs = "assets" </> T.unpack xs
