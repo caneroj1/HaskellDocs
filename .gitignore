@@ -18,3 +18,5 @@ cabal.sandbox.config
 db_config.sh
 upload*
 assets/*.jpg*
+assets/*.jpeg*
+assets/*.png*

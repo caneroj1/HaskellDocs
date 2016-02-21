@@ -27,12 +27,12 @@ import           GHC.Generics
 
 data Document =
   Doc {
-      filename  :: Text.Text
-    , title     :: Text.Text
-    , docID     :: Integer
-    , createdAt :: UTCTime
-    , indexed   :: Bool
-    -- , indexedAt :: UTCTime
+      title         :: Text.Text
+    , docID         :: Integer
+    , createdAt     :: UTCTime
+    , indexed       :: Bool
+    , indexFailure  :: Bool
+    , lastIndexedAt :: UTCTime
     -- , searchable :: ??? tsvector in postgres
   } |
   NewDoc {
@@ -45,7 +45,9 @@ instance ToJSON Document
 instance FromJSON Document
 
 instance FromRow Document where
-  fromRow = Doc <$> field <*> field <*> field <*> field <*> field
+  fromRow = Doc <$>
+  --        title     docID     createdAt indexed   indexedF  indexedAt
+            field <*> field <*> field <*> field <*> field <*> field
 
 instance ToRow Document where
   toRow (

@@ -30,12 +30,21 @@ main = scotty 3000 $ do
     middleware logStdoutDev
     get "/" $ do
       html $ renderHtml Views.Index.index
+
+    -- upload a single document: single associated image to OCR and index
     post "/upload" $ do
       dbConn <- liftAndCatchIO connectToDB
       processUploads dbConn
+
+    -- upload a single document: multiple associated images to OCR and index
+    post "/upload/components"
+
+    -- get all documents and their components
     get "/docs" $ do
       docs <- liftAndCatchIO $ getAllDocuments =<< connectToDB
       json docs
+
+    -- get the document by id and its associated components
     get "/docs/:id" $ do
       dbConn <- liftAndCatchIO connectToDB
       documentID <-  textToInteger <$> param "id"
