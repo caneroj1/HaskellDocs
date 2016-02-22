@@ -32,7 +32,7 @@ data Document =
     , createdAt     :: UTCTime
     , indexed       :: Bool
     , indexFailure  :: Bool
-    , lastIndexedAt :: UTCTime
+    , lastIndexedAt :: Maybe UTCTime
     -- , searchable :: ??? tsvector in postgres
   } |
   NewDoc {
@@ -45,7 +45,7 @@ instance FromJSON Document
 
 instance FromRow Document where
   fromRow = Doc <$>
-  --        title     docID     createdAt indexed   indexedF  indexedAt
+  --        title     docID     createdAt indexed   indexedF  lastIndexedAt
             field <*> field <*> field <*> field <*> field <*> field
 
 instance ToRow Document where
@@ -58,32 +58,33 @@ toNewDoc :: Text.Text -> Document
 toNewDoc (title) =
   NewDoc { title = title }
 
-createSQL :: Query
-createSQL = "insert into Documents (filename, title) values (?, ?) \
-            \returning (filename, title, docID, createdAt)"
-createDocument :: Connection -> Document -> IO [Document]
-createDocument connection = query connection createSQL
-
 multiSQL :: Query
-multiSQL = "insert into Documents (filename, title) values (?, ?)"
+multiSQL = "insert into Documents (title) values (?)"
 createDocuments :: Connection -> [Document] -> IO Int64
 createDocuments connection = executeMany connection multiSQL
 
+createSQL :: Query
+createSQL = "insert into Documents (title) values (?) \
+            \returning title, docID, createdAt, indexed, indexFailure, lastIndexedAt"
+createDocument :: Connection -> Document -> IO Document
+createDocument connection doc = head <$> query connection createSQL doc
+
 indexSQL :: Query
-indexSQL = "select filename, title, docID, createdAt, indexed from Documents"
+indexSQL = "select title, docID, createdAt, indexed, indexFailure, lastIndexedAt \
+            \from Documents"
 getAllDocuments :: Connection -> IO [Document]
 getAllDocuments connection = query_ connection indexSQL
 
 selectSQL :: Query
-selectSQL = "select filename, title, docID, createdAt, indexed from Documents \
-            \where docID = ?"
+selectSQL = "select title, docID, createdAt, indexed, indexFailure, lastIndexedAt \
+            \from Documents where docID = ?"
 getDocumentByID :: Connection -> Integer -> IO Document
 getDocumentByID connection documentID = do
   [document] <- query connection selectSQL [documentID]
   return document
 
 nonIndexedSQL :: Query
-nonIndexedSQL = "select filename, title, docID, createdAt, indexed from \
+nonIndexedSQL = "select title, docID, createdAt, indexed, indexFailure, lastIndexedAt from \
                 \Documents where indexed = false order by createdAt asc \
                 \limit 15"
 getSomeNonIndexed :: Connection -> IO [Document]

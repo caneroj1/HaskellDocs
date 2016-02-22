@@ -11,7 +11,7 @@ import qualified Data.Text.Lazy             as T
 import           Database.PostgreSQL.Simple (Connection)
 import           DB.Database
 import           Models.Document
-import           Models.Document
+import           Models.DocumentComponent
 import           Network.HTTP.Types
 import           Network.Wai.Parse          (FileInfo, fileContent, fileName)
 import           Processors.Utils
@@ -39,13 +39,14 @@ writeFiles fs = forM_ fs (\(file, name) ->
 
 doUpload :: Connection -> [File] -> T.Text -> ActionM ()
 doUpload dbConn fs title = do
-  fAndNPairs <- liftAndCatchIO $ zipFilesWithNames fs
+  fAndNPairs    <- liftAndCatchIO $ zipFilesWithNames fs
   liftAndCatchIO $ writeFiles fAndNPairs
+  doc <- liftAndCatchIO $ createDocument dbConn $ toNewDoc title
   let filenames = map snd fAndNPairs
-  let document  = toNewDoc title
-  let docs      = zipWith (curry toNewDoc) filenames titles
-  liftAndCatchIO $ createDocuments dbConn docs
-  json $ map snd fAndNPairs
+  let comps = zip filenames $ replicate (length fs) (Models.Document.docID doc)
+  let newComps = map toNewComponent comps
+  liftAndCatchIO $ createDocumentComponents dbConn newComps
+  json (doc, newComps)
 
 processUploads :: Connection -> ActionM ()
 processUploads dbConn = do

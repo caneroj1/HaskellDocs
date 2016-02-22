@@ -4,11 +4,8 @@
 module Models.DocumentComponent
 (
   DocumentComponent(..),
-  createDocument,
-  createDocuments,
-  getAllDocuments,
-  getDocumentByID,
-  getSomeNonIndexed,
+  createDocumentComponents,
+  getComponentsByDocID,
   toNewComponent
 )
 where
@@ -33,7 +30,7 @@ data DocumentComponent =
     , createdAt     :: UTCTime
     , indexed       :: Bool
     , indexFailure  :: Bool
-    , lastIndexedAt :: UTCTime
+    , lastIndexedAt :: Maybe UTCTime
     -- , searchable :: ??? tsvector in postgres
   } |
   NewComponent {
@@ -57,4 +54,21 @@ instance ToRow DocumentComponent where
     NewComponent {
       filename = fileName
     , docID = dID
-  }) = [toField dID, toField fileName]
+  }) = [toField fileName, toField dID]
+
+toNewComponent :: (Text.Text, Integer) -> DocumentComponent
+toNewComponent (filename, docID) =
+  NewComponent { filename = filename, docID = docID }
+
+multiSQL :: Query
+multiSQL = "insert into DocumentComponents (filename, docID) values (?, ?)"
+createDocumentComponents :: Connection -> [DocumentComponent] -> IO Int64
+createDocumentComponents connection = executeMany connection multiSQL
+
+selectSQL :: Query
+selectSQL = "select componentID, docID, filename, createdAt, indexed, \
+            \indexFailure, lastIndexedAt from DocumentComponents where \
+            \docID = ?"
+getComponentsByDocID :: Connection -> Integer -> IO [DocumentComponent]
+getComponentsByDocID dbConn docID =
+  query dbConn selectSQL [docID]

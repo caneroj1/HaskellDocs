@@ -5,5 +5,5 @@ CREATE TABLE Documents (
   createdAt TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   indexed BOOLEAN DEFAULT false,
   indexFailure BOOLEAN DEFAULT false,
-  lastIndexedAt TIMESTAMP WITH TIME zone DEFAULT null
+  lastIndexedAt TIMESTAMP WITH TIME ZONE DEFAULT null
 );
