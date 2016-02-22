@@ -16,5 +16,7 @@ cabal.sandbox.config
 *.hp
 .DS_STORE
 db_config.sh
-upload*
+upload*.sh
 assets/*.jpg*
+assets/*.jpeg*
+assets/*.png*
