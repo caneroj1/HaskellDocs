@@ -45,3 +45,4 @@ executable indexer
                     , postgresql-simple
                     , aeson
                     , directory
+                    , containers

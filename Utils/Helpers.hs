@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Utils.Helpers where
 
 import qualified Data.Text.Lazy      as Text
@@ -18,5 +20,5 @@ textToInteger text = go $ decimal text
   where go (Left  _)        = 0
         go (Right (num, _)) = num
 
-tGlobalPath :: Text.Text -> String
-tGlobalPath t = "assets" </> Text.unpack t
+tGlobalPath :: Text.Text -> Text.Text
+tGlobalPath = Text.append "assets/"

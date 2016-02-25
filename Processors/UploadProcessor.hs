@@ -30,29 +30,57 @@ zipFilesWithNames fs = do
   let files  = map snd fs
   return $ zip files filenames'
   where timeString = liftM2 getTimeString currentTimeZone currentUTC
-        timeText = (T.append "_" . T.pack) <$> timeString
-        toPath xs  = (\x -> return $ T.append x xs) =<< timeText
+        timeText   = (T.append "_" . T.pack) <$> timeString
+        assetsAndTime time name = tGlobalPath $ T.append time name
+        toPath xs  = (\x -> return $ assetsAndTime x xs) =<< timeText
 
 writeFiles :: [(UploadedFile, T.Text)] -> IO ()
 writeFiles fs = forM_ fs (\(file, name) ->
-  BS.writeFile (tGlobalPath name) (fileContent file))
+  BS.writeFile (T.unpack name) (fileContent file))
 
-doUpload :: Connection -> [File] -> T.Text -> ActionM ()
-doUpload dbConn fs title = do
-  fAndNPairs    <- liftAndCatchIO $ zipFilesWithNames fs
+doUpload :: Connection -> File -> [File] -> T.Text -> ActionM ()
+doUpload dbConn mainImage fs title = do
+  fAndNPairs    <- liftAndCatchIO $ zipFilesWithNames (mainImage : fs)
   liftAndCatchIO $ writeFiles fAndNPairs
-  doc <- liftAndCatchIO $ createDocument dbConn $ toNewDoc title
-  let filenames = map snd fAndNPairs
+  let mainFilename = snd $ head fAndNPairs
+  doc <- liftAndCatchIO $ createDocument dbConn $ toNewDoc title mainFilename
+  let filenames = map snd (tail fAndNPairs)
   let comps = zip filenames $ replicate (length fs) (Models.Document.docID doc)
   let newComps = map toNewComponent comps
   liftAndCatchIO $ createDocumentComponents dbConn newComps
   json (doc, newComps)
 
+-- we need to have a title and at least one image uploaded
+contentOK :: T.Text -> [File] -> ActionM (Bool, Errors)
+contentOK title fs = do
+  (b1, m1) <- verify True (textExists title) [] "Title not supplied."
+  verify b1 (exists fs) m1 "No images were uploaded."
+
+-- if we have multiple images, we must have one image specified via the
+-- "main" keyword. that image won't be indexed but it will be
+-- stored as the main image for a document, which may be composed
+-- of smaller, more easy to OCR components
+imagesOK :: [File] -> (Bool, Errors) -> ActionM (Bool, Errors)
+imagesOK fs (b, errs)
+  | not b = return (b, errs)
+  | length fs == 1 = return (True, [])
+  | otherwise =
+    verify True (lc $ filter (("main" ==) . fst) fs) [] "No main image uploaded"
+  where lc x = 1 == length x
+
+splitFiles :: [File] -> (File, [File])
+splitFiles fs
+  | length fs == 1 = (head fs, [])
+  | otherwise      = process [] fs
+  where process prev ((name, d) : fss) = if name == "main"
+                                         then ((name, d), prev ++ fss)
+                                         else process (prev ++ [(name, d)]) fss
+
 processUploads :: Connection -> ActionM ()
 processUploads dbConn = do
   title    <- T.pack <$> param "title"
   fs       <- files
-  (b1, m1) <- verify True (textExists title) [] "Title not supplied."
-  (b2, m2) <- verify b1 (exists fs) m1 "No images were uploaded."
-  if not b2 then json (m2 :: Errors)
-  else doUpload dbConn fs title
+  (okay, errs) <- imagesOK fs =<< contentOK title fs
+  let (main, others) = splitFiles fs
+  if not okay then json (errs :: Errors)
+  else doUpload dbConn main others title

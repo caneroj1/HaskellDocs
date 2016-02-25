@@ -3,8 +3,10 @@
 
 import           Control.Applicative
 import           Control.Monad
+import           Data.Sequence              (Seq, foldlWithIndex, (<|), (|>))
+import qualified Data.Sequence              as Seq (empty)
 import           Data.Text.Lazy             (append, pack, strip, unpack)
-import qualified Data.Text.Lazy             as T (null, unlines)
+import qualified Data.Text.Lazy             as T (Text, empty, null, unlines)
 import           Database.PostgreSQL.Simple
 import           DB.Database
 import           Models.Document
@@ -15,7 +17,9 @@ import           Utils.Helpers
 import           Utils.ImageUtils
 import           Utils.TesseractUtils
 
-execOCR :: String -> IO Bool
+type OCR = Seq T.Text
+
+execOCR :: String -> IO (Bool, T.Text)
 execOCR filename = do
   let convertedFilename = renamePNG filename
   putStrLn $ "\n\nProcessing " ++ filename
@@ -23,7 +27,7 @@ execOCR filename = do
   convertForOCR filename convertedFilename
   runTesseract convertedFilename
   nextTime    <- currentUTC
-  content <- liftM lines $ hGetContents =<< openFile "output.txt" ReadMode
+  content     <- liftM lines $ hGetContents =<< openFile "output.txt" ReadMode
   let content' = strip . T.unlines $ map (strip . pack) content
   if T.null content'
   then putStrLn "ERROR: OCR generated empty results"
@@ -33,15 +37,44 @@ execOCR filename = do
   putStrLn "Cleaning up...\n\n"
   tesseractCleanUp
   imageCleanUp convertedFilename
-  return . not $ T.null content'
+  return (not $ T.null content', append content' " ")
 
-ocrForDocumentComponents :: Connection -> Document -> IO Bool
-ocrForDocumentComponents dbConn document = do
+ocrForDocument :: Document -> [DocumentComponent] ->
+                  [(Bool, T.Text)] -> IO [(Bool, T.Text)]
+ocrForDocument doc [] _ =
+  liftM ( : [] ) $ execOCR . unpack $ mainFilename doc
+ocrForDocument _ components results = return results
+
+ocrForComponent :: DocumentComponent -> IO (Bool, T.Text)
+ocrForComponent component = execOCR (unpack $ filename component)
+
+totalImages :: Document -> [DocumentComponent] -> Int
+totalImages doc []       = 1
+totalImages _   l@(x:xs) = length l
+
+filterTrue :: [(Bool, a)] -> IO [(Bool, a)]
+filterTrue = return <$> filter fst
+
+updateDB :: Connection -> (Bool, OCR) -> Document -> IO ()
+updateDB _      (False, _  ) doc = return ()
+updateDB dbConn (_,     ocr) doc = do
+  let tsvector = foldlWithIndex (\prev _ text -> append prev text) T.empty $
+                 title doc <| " " <| ocr
+  _ <- updateSearchable dbConn (Models.Document.docID doc) tsvector
+  return ()
+
+performOCR :: Connection -> Document -> IO (Bool, OCR)
+performOCR dbConn document = do
   comps <- getComponentsByDocID dbConn (Models.Document.docID document)
-  s <- return <$> filter id =<< mapM (execOCR . tGlobalPath . filename) comps
-  putStr $ "Indexed " ++ show (length s) ++ "/" ++ show (length comps)
-  putStr " document components successfully\n\n"
-  return (length s == length comps)
+  let totalToOCR = totalImages document comps
+  s <- filterTrue =<< mapM ocrForComponent comps
+  results <- filterTrue =<< ocrForDocument document comps s
+  putStr $ "Indexed " ++ show (length results) ++ "/" ++ show totalToOCR
+  putStr " images successfully\n\n"
+  let content  = foldl (|>) Seq.empty $ map snd results
+  let success = length results == totalToOCR
+  updateDB dbConn (success, content) document
+  return (success, content)
 
 main :: IO ()
 main = do
@@ -54,7 +87,7 @@ main = do
   nextTime    <- currentUTC
   putStrLn $ "Finished querying DB. Took: " ++ timeDiff currentTime nextTime
 
-  s <- return <$> filter id =<< mapM (ocrForDocumentComponents dbConn) docs
+  s <- filterTrue =<< mapM (performOCR dbConn) docs
 
   putStr $ "Indexed " ++ show (length s) ++ "/" ++ show (length docs)
   putStr " document(s) successfully\n"
