@@ -10,6 +10,7 @@ module Models.Document
   getDocumentByID,
   getSomeNonIndexed,
   updateSearchable,
+  getDocumentsByQuery,
   toNewDoc
 )
 where
@@ -17,6 +18,7 @@ where
 import           Control.Applicative                ((<$>))
 import           Data.Aeson
 import           Data.Int
+import           Data.Monoid
 import qualified Data.Text.Lazy                     as Text
 import           Data.Time.Clock
 import           Database.PostgreSQL.Simple
@@ -79,7 +81,7 @@ createDocument connection doc = head <$> query connection createSQL doc
 
 indexSQL :: Query
 indexSQL = "select title, docID, createdAt, indexed, indexFailure,     \
-            \lastIndexedAt, mainFilename, from Documents"
+            \lastIndexedAt, mainFilename from Documents"
 getAllDocuments :: Connection -> IO [Document]
 getAllDocuments connection = query_ connection indexSQL
 
@@ -104,3 +106,12 @@ tsvectorSQL = "update Documents set textSearchableColumn = \
 updateSearchable :: Connection -> Integer -> Text.Text -> IO Int64
 updateSearchable connection documentID text =
   execute connection tsvectorSQL (text, documentID)
+
+querySQL :: Query
+querySQL = "select title, docID, createdAt, indexed, indexFailure, \
+           \lastIndexedAt, mainFilename from Documents             \
+           \where textSearchableColumn @@ to_tsquery(?, ?)"
+getDocumentsByQuery :: Connection -> Text.Text -> IO [Document]
+getDocumentsByQuery dbConn queryStr = do
+  putStrLn $ Text.unpack queryStr
+  query dbConn querySQL ("english" :: Text.Text, queryStr)

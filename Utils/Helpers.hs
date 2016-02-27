@@ -22,3 +22,10 @@ textToInteger text = go $ decimal text
 
 tGlobalPath :: Text.Text -> Text.Text
 tGlobalPath = Text.append "assets/"
+
+formatQuery :: Text.Text -> Text.Text
+formatQuery = Text.intercalate " & "
+            . Text.words
+
+toSrc :: Text.Text -> Text.Text
+toSrc = Text.concat . tail . Text.splitOn "/"
