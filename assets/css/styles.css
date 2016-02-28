@@ -1,3 +1,25 @@
-.document-image {
+.w40 {
   width: 40%;
+}
+
+.w50 {
+  width: 50%;
+}
+
+.side-nav-fixed {
+  position: fixed;
+  top: 10%;
+}
+
+.sidebar-item {
+  font-size: 26px;
+  width: 120%
+}
+
+.m20b {
+  margin-bottom: 20px;
+}
+
+.display-block {
+  display: block;
 }

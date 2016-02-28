@@ -17,6 +17,17 @@ styles = do
   link ! rel "stylesheet" ! type_ "text/css" ! href bootstrapCss
   link ! rel "stylesheet" ! type_ "text/css" ! href myCss
 
+renderSideNav = do
+  HTML.div ! class_ "col-md-3" $ do
+    HTML.div ! class_ "side-nav-fixed" $ do
+      ul ! class_ "nav nav-pills nav-stacked" $ do
+        li $ do
+          a ! href "/" ! class_ "sidebar-item" $ "Search"
+        li $ do
+          a ! href "/docs" ! class_ "sidebar-item" $ "All Docs"
+        li $ do
+          a ! href "#" ! class_ "sidebar-item" $ "Upload"
+
 renderHead pageTitle = do
   Text.Blaze.Html5.head $ do
     Text.Blaze.Html5.title pageTitle

@@ -2,6 +2,7 @@
 
 module Views.AllDocuments where
 
+import           Data.Maybe
 import qualified Data.Text.Lazy              as T (unpack)
 import           Data.Time.LocalTime
 import qualified Models.Document             as Doc
@@ -24,13 +25,31 @@ indexHeader = do
             ! name "query"
     button ! type_ "submit" ! class_ "btn btn-default" $ "Find Documents"
 
+statusBlock :: Doc.Document -> Html
+statusBlock (Doc.Doc {  Doc.lastIndexedAt = l,
+                        Doc.indexed       = i})
+  | not i = do
+    HTML.div ! class_ "alert alert-danger w40" $ do
+      strong "Indexing Failed "
+      "Please retry indexing"
+    button ! class_ "display-block btn btn-info m20b" $ "Re-index"
+  | i     =
+    HTML.div ! class_ "alert alert-success w40" $ do
+      strong "Indexing Succeeded "
+      "This document is now searchable"
+  | isNothing l =
+    HTML.div ! class_ "alert alert-warning w40" $ do
+      strong "Not yet indexed "
+      "This document has not been indexed"
+
 documentBlock :: (Doc.Document, LocalTime) -> Html
 documentBlock (doc, localTime) = do
   h2 $ (toHtml . Doc.title) doc
   p $ do
     strong "Uploaded: "
     toHtml $ timeToString localTime
-  img ! class_ "document-image"
+  statusBlock doc
+  img ! class_ "w50 img-thumbnail"
       ! src (toValue . toSrc $ Doc.mainFilename doc)
 
 allDocuments :: [(Doc.Document, LocalTime)] -> Html
@@ -38,8 +57,9 @@ allDocuments docsAndTimes =
   html $ do
     renderHead "All Documents"
     body $ do
-      container $
-          HTML.div ! class_ "col-md-10 col-md-offset-1" $ do
+      container $ do
+          HTML.div ! class_ "col-md-8 col-md-offset-1" $ do
             h1 ! class_ "text-center" $ "All Documents"
             concatHtml $ Prelude.map documentBlock docsAndTimes
+          renderSideNav
       renderJavascript

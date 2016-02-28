@@ -23,7 +23,9 @@ index =
   html $ do
     renderHead "My Documents"
     body $ do
-      container $
-          HTML.div ! class_ "col-md-10 col-md-offset-1" $
+      container $ do
+          HTML.div ! class_ "col-md-8 col-md-offset-1" $ do
             indexHeader
+            hr
+          renderSideNav
       renderJavascript
