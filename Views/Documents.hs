@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Views.AllDocuments where
+module Views.Documents where
 
 import           Data.Maybe
 import qualified Data.Text.Lazy              as T (unpack)
@@ -13,17 +13,6 @@ import qualified Text.Blaze.Html5.Attributes as Attr (id)
 import           Utils.DateUtils
 import           Utils.Helpers
 import           Views.ViewUtils
-
-indexHeader = do
-  h1 ! class_ "text-center" $ "Search your Documents"
-  HTML.form ! method "get" ! action "/search" $ do
-    HTML.div ! class_ "form-group" $ do
-      HTML.label ! for "query" $ "Search"
-      input ! type_ "text"
-            ! class_ "form-control"
-            ! Attr.id "query"
-            ! name "query"
-    button ! type_ "submit" ! class_ "btn btn-default" $ "Find Documents"
 
 statusBlock :: Doc.Document -> Html
 statusBlock (Doc.Doc {  Doc.lastIndexedAt = l,

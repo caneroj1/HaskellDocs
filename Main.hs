@@ -1,3 +1,4 @@
+{-# LANGUAGE DoAndIfThenElse   #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 import           Web.Scotty
@@ -17,14 +18,28 @@ import           Processors.UploadProcessor
 import           Text.Blaze.Html.Renderer.Text
 import           Utils.DateUtils
 import           Utils.Helpers
-import           Views.AllDocuments
+import           Views.Documents
 import           Views.Index
+
+getDocs :: ActionM [Document]
+getDocs = go =<< param "query" `rescue` saveParam
+  where
+    go q
+      | T.null q     = return []
+      | otherwise  = do
+                      dbConn <- liftAndCatchIO connectToDB
+                      liftAndCatchIO $ getDocumentsByQuery dbConn q
+    saveParam _ = return T.empty
 
 main :: IO ()
 main = scotty 3000 $ do
     middleware $ staticPolicy (noDots >-> addBase "assets")
     middleware logStdoutDev
-    get "/" . html $ renderHtml Views.Index.index
+    get "/" $ do
+      ds   <- getDocs
+      liftAndCatchIO $ print ds
+      ts   <- liftAndCatchIO $ mapM (utcToLocal . Models.Document.createdAt) ds
+      html . renderHtml $ Views.Index.index $ zip ds ts
 
     post "/upload" $ do
       dbConn <- liftAndCatchIO connectToDB
@@ -34,7 +49,7 @@ main = scotty 3000 $ do
     get "/docs" $ do
       ds <- liftAndCatchIO $ getAllDocuments =<< connectToDB
       ts <- liftAndCatchIO $ mapM (utcToLocal . Models.Document.createdAt) ds
-      html . renderHtml $ Views.AllDocuments.allDocuments $ zip ds ts
+      html . renderHtml $ Views.Documents.allDocuments $ zip ds ts
 
     get "/docs.json" $ do
       docs <- liftAndCatchIO $ getAllDocuments =<< connectToDB

@@ -46,3 +46,4 @@ executable indexer
                     , aeson
                     , directory
                     , containers
+                    , mtl
